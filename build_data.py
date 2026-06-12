@@ -11,10 +11,10 @@ Output: data.js  (const FTL = {...})
 """
 import json, math, sys, os
 
-LAT0, LON0 = 26.1185, -80.1375
+LAT0, LON0 = 26.1175, -80.123
 MX = 111320 * math.cos(math.radians(LAT0))
 MZ = 110574
-CLIP_X, CLIP_Z = 1340, 1400
+CLIP_X, CLIP_Z = 2790, 1930
 
 def proj(lat, lon):
     return ((lon - LON0) * MX, -(lat - LAT0) * MZ)
@@ -139,8 +139,8 @@ rivers = load('/tmp/ftl_osm3.json')
 parts_raw = load('/tmp/ftl_osm4.json')
 
 # aerial imagery (USGS NAIP, public domain): ground.jpg covers this bbox
-IMG_LON = (-80.1545, -80.1205)
-IMG_LAT = (26.1035, 26.1335)
+IMG_LON = (-80.151, -80.095)
+IMG_LAT = (26.100, 26.135)
 IMG_HX = round((IMG_LON[1] - LON0) * MX)
 IMG_HZ = round((LAT0 - IMG_LAT[0]) * MZ)
 try:
@@ -167,9 +167,11 @@ def roof_color(ring):
             rs += r; gs += g; bs += b; n += 1
     if not n:
         return None
+    r0, g0, b0 = rs / n, gs / n, bs / n
+    lum = 0.299 * r0 + 0.587 * g0 + 0.114 * b0
     def cl(c):
-        return max(50, min(235, int(c / n * 0.92 + 20)))
-    return (cl(rs) << 16) | (cl(gs) << 8) | cl(bs)
+        return max(58, min(240, int(lum + (c - lum) * 1.45 + 6)))
+    return (cl(r0) << 16) | (cl(g0) << 8) | cl(b0)
 
 H_PATCH = {
     273273699: 88,    # Bank of America Plaza
@@ -289,10 +291,12 @@ def kind_for(t, h):
         return 1
     return 0
 
-def default_h(t, area_m2, bid):
+def default_h(t, area_m2, bid, cx=0):
     b = t.get('building', 'yes')
     if b in HOUSE:
         return 4.5
+    if cx > 1750 and area_m2 > 700:
+        return 40.0 + (abs(bid) % 6) * 12.0
     if b in RESI:
         return 9.0
     if b == 'church':
@@ -348,8 +352,10 @@ for bid, rings, t in buildings:
             emit(pid, [ppts], ptags, ph, pmh, card)
         continue
     if h is None:
-        ar = ring_area(project_ring(rings[0]))
-        h = default_h(t, ar, bid)
+        pr0 = project_ring(rings[0])
+        ar = ring_area(pr0)
+        cx0 = sum(p[0] for p in pr0) / len(pr0) if pr0 else 0
+        h = default_h(t, ar, bid, cx0)
     emit(bid, rings, t, h, 0.0, card)
 
 for idx, g in sorted(int_groups.items()):
@@ -378,7 +384,7 @@ for e in main:
     L = sum(math.hypot(pts[i+1][0]-pts[i][0], pts[i+1][1]-pts[i][1]) for i in range(len(pts)-1))
     road_ways.append((L, w, pts, t.get('name') or ''))
 
-routes = [pts for L, w, pts, n in sorted(road_ways, key=lambda r: -r[0])[:14] if w >= 7]
+routes = [pts for L, w, pts, n in sorted(road_ways, key=lambda r: -r[0])[:20] if w >= 7]
 
 # Las Olas chain for palms
 lo_segs = [pts for L, w, pts, n in road_ways if n == 'East Las Olas Boulevard']
@@ -460,7 +466,7 @@ elif 160701747 in rv_ways:
 rv_p = []
 for la, lo in rv:
     x, z = proj(la, lo)
-    if abs(x) < 1600 and abs(z) < 1600:
+    if abs(x) < 3150 and abs(z) < 2200:
         rv_p.append([round(x), round(z)])
 
 # labels: name, x, topY, z

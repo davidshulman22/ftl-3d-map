@@ -40,8 +40,8 @@ body{background:#0b1420}
 <button id="bReset">Reset</button><button id="bTop">Top down</button><button id="bRiver">Riverfront</button><button id="bDusk">Dusk</button>
 </div>
 <div id="compass" class="panel">N</div>
-<div id="card" class="panel"><div class="nm">Welcome</div><div class="nt">Every building footprint, street, and the New River below comes from real OpenStreetMap data for downtown Fort Lauderdale. Click any landmark tower for details.</div></div>
-<div id="foot">map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · built with three.js</div>
+<div id="card" class="panel"><div class="nm">Welcome</div><div class="nt">Real aerial imagery under real building footprints — downtown Fort Lauderdale from OpenStreetMap data and USGS aerial photography. Click any landmark tower for details.</div></div>
+<div id="foot">map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · aerial imagery USGS NAIP · built with three.js</div>
 <script src="data.js"></script>
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
@@ -122,11 +122,19 @@ function facade(kind){
     x.fillStyle='#dbd6ca';x.fillRect(0,y+cell-5,w,5);
     x.fillStyle='rgba(255,255,255,.55)';x.fillRect(2,y+12,w-4,1.5);
    }
-  }else{
-   x.fillStyle=kind==='stucco'?'#e6dfd0':'#c4bcaa';x.fillRect(0,0,w,h);
+  }else if(kind==='stucco'){
+   x.fillStyle='#e3dcca';x.fillRect(0,0,w,h);
    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
-    const v=R();const g=42+v*30;
-    x.fillStyle=kind==='stucco'?'#a59d8c':'#968e7c';x.fillRect(c*cell+6,r*cell+7,cell-12,cell-12);
+    if(R()<0.42)continue;
+    const v=R();const g=118+v*36;
+    x.fillStyle='#c2bAA6'.replace('A','a');x.fillRect(c*cell+7,r*cell+9,cell-14,cell-15);
+    x.fillStyle=`rgb(${g},${g+8},${g+16})`;x.fillRect(c*cell+8.5,r*cell+10.5,cell-17,cell-18);
+   }
+  }else{
+   x.fillStyle='#c4bcaa';x.fillRect(0,0,w,h);
+   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const v=R();const g=52+v*32;
+    x.fillStyle='#968e7c';x.fillRect(c*cell+6,r*cell+7,cell-12,cell-12);
     x.fillStyle=`rgb(${g},${g+8},${g+18})`;x.fillRect(c*cell+7.5,r*cell+8.5,cell-15,cell-15);
    }
   }
@@ -152,11 +160,11 @@ function facadeMat(kind){
  facMats.push(m);
  return m;
 }
-const roofLow=new THREE.MeshStandardMaterial({color:0xb1aa99,roughness:.95});
-const roofHi=new THREE.MeshStandardMaterial({color:0x8e949a,roughness:.85});
+const roofMerged=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92,metalness:0});
 
-const EXT=FTL.ext;
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(EXT[0]*2,EXT[1]*2),new THREE.MeshStandardMaterial({color:0xcdc7b6,roughness:1}));
+const IMG=FTL.img;
+const groundTex=new THREE.TextureLoader().load('ground.jpg',t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=maxAniso;t.needsUpdate=true;});
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(IMG[0]*2,IMG[1]*2),new THREE.MeshStandardMaterial({map:groundTex,roughness:.96}));
 ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
 
 function shapeFromRing(ring){
@@ -172,91 +180,51 @@ function extrude(ring,h,mh){
  if(mh)g.translate(0,mh,0);
  return g;
 }
-function sliceGroup(g,mi){
+function sliceGroup(g,mi,colorHex){
  const grp=g.groups.find(gr=>gr.materialIndex===mi);
  const out=new THREE.BufferGeometry();
  for(const name of ['position','normal','uv']){
   const a=g.attributes[name];
   out.setAttribute(name,new THREE.BufferAttribute(a.array.slice(grp.start*a.itemSize,(grp.start+grp.count)*a.itemSize),a.itemSize));
  }
+ if(colorHex!==undefined){
+  const col=new THREE.Color(colorHex);
+  const n=out.attributes.position.count,arr=new Float32Array(n*3);
+  for(let i=0;i<n;i++){arr[i*3]=col.r;arr[i*3+1]=col.g;arr[i*3+2]=col.b;}
+  out.setAttribute('color',new THREE.BufferAttribute(arr,3));
+ }
  return out;
 }
-const capBuckets=[[],[],[],[]],sideBuckets=[[],[],[],[]];
+const capAll=[],sideBuckets=[[],[],[],[]];
 for(const b of FTL.b){
  const k=Math.min(b[0],3);
  const g=extrude(b[3],b[1],b[2]);
- capBuckets[k].push(sliceGroup(g,0));
+ capAll.push(sliceGroup(g,0,b[4]));
  sideBuckets[k].push(sliceGroup(g,1));
  g.dispose();
 }
+{
+ const caps=new THREE.Mesh(mergeGeometries(capAll,false),roofMerged);
+ caps.castShadow=caps.receiveShadow=true;
+ scene.add(caps);
+}
 for(let k=0;k<4;k++){
  if(!sideBuckets[k].length)continue;
- const caps=new THREE.Mesh(mergeGeometries(capBuckets[k],false),k>=2?roofHi:roofLow);
  const sides=new THREE.Mesh(mergeGeometries(sideBuckets[k],false),facadeMat(KINDS[k]));
- caps.castShadow=caps.receiveShadow=sides.castShadow=sides.receiveShadow=true;
- scene.add(caps);scene.add(sides);
+ sides.castShadow=sides.receiveShadow=true;
+ scene.add(sides);
 }
 const interMeshes=[];
 for(const g of FTL.i){
  const card=FTL.cards[g.c];
  const fm=facadeMat(KINDS[g.k]);
- for(const[h,mh,ring]of g.m){
-  const mesh=new THREE.Mesh(extrude(ring,h,mh),[g.k>=2?roofHi:roofLow,fm]);
+ for(const[h,mh,ring,rc]of g.m){
+  const capM=new THREE.MeshStandardMaterial({color:rc,roughness:.92});
+  const mesh=new THREE.Mesh(extrude(ring,h,mh),[capM,fm]);
   mesh.castShadow=mesh.receiveShadow=true;
   mesh.userData={card,fm};
   scene.add(mesh);interMeshes.push(mesh);
  }
-}
-
-const aspTex=tex((x,w,h)=>{
- x.fillStyle='#3b3c3f';x.fillRect(0,0,w,h);
- for(let i=0;i<600;i++){const g=52+R()*22;x.fillStyle=`rgba(${g},${g},${g+3},.5)`;x.fillRect(R()*w,R()*h,1.5,1.5);}
-});
-aspTex.repeat.set(1/40,1);
-function roadGeoms(list,y){
- const geos=[];
- for(const r of list){
-  const w=r[0],pts=[];
-  for(let i=1;i<r.length;i+=2)pts.push([r[i],r[i+1]]);
-  for(let i=0;i<pts.length-1;i++){
-   const ax=pts[i][0],az=pts[i][1],bx=pts[i+1][0],bz=pts[i+1][1];
-   const dx=bx-ax,dz=bz-az,L=Math.hypot(dx,dz);
-   if(L<0.5)continue;
-   const nx=-dz/L*w/2,nz=dx/L*w/2;
-   const g=new THREE.BufferGeometry();
-   g.setAttribute('position',new THREE.Float32BufferAttribute([ax+nx,y,az+nz,ax-nx,y,az-nz,bx+nx,y,bz+nz,bx-nx,y,bz-nz],3));
-   g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,0,1,L,0,L,1],2));
-   g.setAttribute('normal',new THREE.Float32BufferAttribute([0,1,0,0,1,0,0,1,0,0,1,0],3));
-   g.setIndex([0,2,1,1,2,3]);
-   geos.push(g);
-   if(i>0&&w>=7){
-    const c=new THREE.CircleGeometry(w/2,8);
-    c.rotateX(-Math.PI/2);c.translate(ax,y,az);
-    const uv=c.attributes.uv;for(let j=0;j<uv.count;j++)uv.setXY(j,0.5,0.5);
-    geos.push(c);
-   }
-  }
- }
- return geos;
-}
-{
- const merged=mergeGeometries(roadGeoms(FTL.r,0.3),false);
- const mesh=new THREE.Mesh(merged,new THREE.MeshStandardMaterial({map:aspTex,roughness:.95}));
- mesh.receiveShadow=true;scene.add(mesh);
-}
-{
- const rails=FTL.rl.map(flat=>{const a=[4];for(const v of flat)a.push(v);return a;});
- const merged=mergeGeometries(roadGeoms(rails,0.34),false);
- if(merged){
-  const mesh=new THREE.Mesh(merged,new THREE.MeshStandardMaterial({color:0x554f45,roughness:1}));
-  mesh.receiveShadow=true;scene.add(mesh);
- }
-}
-const parkMat=new THREE.MeshStandardMaterial({color:0x70924a,roughness:1});
-for(const ring of FTL.pk){
- const g=new THREE.ShapeGeometry(shapeFromRing(ring));
- g.rotateX(-Math.PI/2);g.translate(0,0.12,0);
- const m=new THREE.Mesh(g,parkMat);m.receiveShadow=true;scene.add(m);
 }
 
 const waterN=tex((x,w,h)=>{
@@ -268,7 +236,7 @@ const waterN=tex((x,w,h)=>{
  }
 },256,256,false);
 waterN.repeat.set(20,6);
-const waterMat=new THREE.MeshStandardMaterial({color:0x1c5876,roughness:0.5,metalness:0,normalMap:waterN,normalScale:new THREE.Vector2(0.6,0.6),envMapIntensity:0.3});
+const waterMat=new THREE.MeshStandardMaterial({color:0x16455e,roughness:0.42,metalness:0,normalMap:waterN,normalScale:new THREE.Vector2(0.6,0.6),envMapIntensity:0.5,transparent:true,opacity:0.6,depthWrite:false});
 for(const ring of FTL.w){
  const g=new THREE.ShapeGeometry(shapeFromRing(ring));
  g.rotateX(-Math.PI/2);g.translate(0,0.16,0);

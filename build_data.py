@@ -138,6 +138,39 @@ extra_water = load('/tmp/ftl_osm2.json')
 rivers = load('/tmp/ftl_osm3.json')
 parts_raw = load('/tmp/ftl_osm4.json')
 
+# aerial imagery (USGS NAIP, public domain): ground.jpg covers this bbox
+IMG_LON = (-80.1545, -80.1205)
+IMG_LAT = (26.1035, 26.1335)
+IMG_HX = round((IMG_LON[1] - LON0) * MX)
+IMG_HZ = round((LAT0 - IMG_LAT[0]) * MZ)
+try:
+    from PIL import Image
+    _img = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ground.jpg')).convert('RGB')
+    _IW, _IH = _img.size
+except Exception:
+    _img = None
+
+def roof_color(ring):
+    if _img is None:
+        return None
+    cx = sum(p[0] for p in ring) / len(ring)
+    cz = sum(p[1] for p in ring) / len(ring)
+    pts = [(cx, cz)]
+    for p in ring[:8]:
+        pts.append(((p[0] + cx) / 2, (p[1] + cz) / 2))
+    rs = gs = bs = n = 0
+    for x, z in pts:
+        u = (x + IMG_HX) / (2 * IMG_HX) * _IW
+        v = (z + IMG_HZ) / (2 * IMG_HZ) * _IH
+        if 0 <= u < _IW and 0 <= v < _IH:
+            r, g, b = _img.getpixel((int(u), int(v)))
+            rs += r; gs += g; bs += b; n += 1
+    if not n:
+        return None
+    def cl(c):
+        return max(50, min(235, int(c / n * 0.92 + 20)))
+    return (cl(rs) << 16) | (cl(gs) << 8) | cl(bs)
+
 H_PATCH = {
     273273699: 88,    # Bank of America Plaza
     1066256701: 80,   # Broward County Judicial Complex tower
@@ -289,11 +322,11 @@ def emit(bid, rings, t, h, mh, card):
         k = kov if kov is not None else kind_for(t, h)
         g = int_groups.setdefault(idx, {'c': idx, 'k': k, 'm': []})
         for r in pr:
-            g['m'].append([round(h, 1), round(mh, 1), r])
+            g['m'].append([round(h, 1), round(mh, 1), r, roof_color(r) or 11250603])
     else:
         k = kind_for(t, h)
         for r in pr:
-            out_b.append([k, round(h, 1), round(mh, 1), r])
+            out_b.append([k, round(h, 1), round(mh, 1), r, roof_color(r) or 11250603])
 
 part_by_id = {p[0]: p for p in parts}
 emitted_parts = set()
@@ -445,7 +478,7 @@ for g in out_int:
 
 data = {'b': out_b, 'i': out_int, 'cards': out_cards, 'r': out_roads, 'rl': out_rail,
         'pk': out_parks, 'w': out_water, 'rv': rv_p, 'routes': routes, 'lo': lo_chain,
-        'lbl': out_labels, 'ext': [CLIP_X, CLIP_Z]}
+        'lbl': out_labels, 'ext': [CLIP_X, CLIP_Z], 'img': [IMG_HX, IMG_HZ]}
 js = 'const FTL=' + json.dumps(data, separators=(',', ':')) + ';'
 out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.js')
 with open(out_path, 'w') as f:

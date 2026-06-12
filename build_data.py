@@ -133,6 +133,41 @@ def pt_in(la, lo, pts):
                 inside = not inside
     return inside
 
+# Overture Maps measured building heights (lon, lat, height_m)
+try:
+    _hp = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'heights.json')
+    OV = json.load(open(_hp))
+except Exception:
+    OV = []
+from collections import defaultdict
+_GRID = defaultdict(list)
+for _lon, _lat, _h in OV:
+    _GRID[(int(_lat * 2000), int(_lon * 2000))].append((_lat, _lon, _h))
+
+def overture_h(rings):
+    if not OV:
+        return None
+    ring = rings[0]
+    lats = [p[0] for p in ring]; lons = [p[1] for p in ring]
+    la0, la1, lo0, lo1 = min(lats), max(lats), min(lons), max(lons)
+    cands = []
+    for ky in range(int(la0 * 2000) - 1, int(la1 * 2000) + 2):
+        for kx in range(int(lo0 * 2000) - 1, int(lo1 * 2000) + 2):
+            cands += _GRID.get((ky, kx), [])
+    inside = [h for la, lo, h in cands
+              if la0 <= la <= la1 and lo0 <= lo <= lo1 and pt_in(la, lo, ring)]
+    if inside:
+        return max(inside)
+    cla = sum(lats) / len(lats); clo = sum(lons) / len(lons)
+    best, bd = None, 1e18
+    for la, lo, h in cands:
+        d = ((la - cla) * 110574) ** 2 + ((lo - clo) * 99947) ** 2
+        if d < bd:
+            bd, best = d, h
+    return best if best is not None and bd < 144 else None
+
+OV_USED = [0]
+
 main = load('/tmp/ftl_osm.json')
 extra_water = load('/tmp/ftl_osm2.json')
 rivers = load('/tmp/ftl_osm3.json')
@@ -352,6 +387,10 @@ for bid, rings, t in buildings:
             emit(pid, [ppts], ptags, ph, pmh, card)
         continue
     if h is None:
+        h = overture_h(rings)
+        if h is not None:
+            OV_USED[0] += 1
+    if h is None:
         pr0 = project_ring(rings[0])
         ar = ring_area(pr0)
         cx0 = sum(p[0] for p in pr0) / len(pr0) if pr0 else 0
@@ -493,4 +532,5 @@ print('buildings merged:', len(out_b), ' interactive groups:', len(out_int),
       ' roads:', len(out_roads), ' water polys:', len(out_water), ' parks:', len(out_parks),
       ' rail:', len(out_rail), ' river pts:', len(rv_p), ' routes:', len(routes),
       ' las olas pts:', len(lo_chain), ' labels:', len(out_labels))
+print('overture heights used:', OV_USED[0])
 print('data.js size: %.0f KB' % (os.path.getsize(out_path) / 1024))

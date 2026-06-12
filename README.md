@@ -25,7 +25,7 @@ Fetch fresh Overpass extracts for the downtown bounding box (see the query files
 python3 build_data.py
 ```
 
-Building heights use OSM `height`/`building:levels` tags where present, hand-patched values for known towers, and modest defaults elsewhere. Landmark positions are stylized only in color and labeling — geometry is real.
+Building heights use OSM `height`/`building:levels` tags where present, then measured heights from Overture Maps (`heights.json`, LiDAR/imagery-derived, ~6,100 of 8,500 buildings), hand-patched values for known towers, and modest defaults for the remainder. Landmark positions are stylized only in color and labeling — geometry is real.
 
 ## Attribution
 

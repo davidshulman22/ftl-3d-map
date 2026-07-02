@@ -3,95 +3,304 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fort Lauderdale — photorealistic 3D</title>
-<meta name="description" content="A photorealistic interactive 3D map of Fort Lauderdale — downtown, the New River, Las Olas Isles, and the beach — on Google Photorealistic 3D Tiles.">
+<title>Fort Lauderdale — interactive 3D</title>
+<meta name="description" content="A photorealistic interactive 3D map of Fort Lauderdale — guided tour, 25 curated places, search, and free flight over downtown, the New River, Las Olas, and the beach.">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-body{background:#0b1420}
+body{background:#0a1018;color:#e8eef6}
 gmp-map-3d{position:fixed;inset:0;display:block}
-.panel{background:rgba(255,255,255,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(0,0,0,.08);border-radius:12px;color:#1a2330}
-#hud{position:fixed;top:14px;left:14px;z-index:10;padding:12px 16px;max-width:330px}
-#hud h1{font-size:18px;font-weight:600;letter-spacing:-.01em}
-#hud p{font-size:12px;color:#5a6678;margin-top:3px}
-#bar{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px;padding:6px;flex-wrap:wrap;justify-content:center}
-#bar button{font:500 12.5px system-ui;padding:7px 12px;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:rgba(255,255,255,.7);color:#1a2330;cursor:pointer;white-space:nowrap}
-#bar button:hover{background:#fff}
-#card{position:fixed;left:14px;bottom:24px;z-index:10;padding:13px 16px;max-width:390px;min-width:260px}
-#card .nm{font-size:15px;font-weight:600}
-#card .ft{font-size:12px;color:#5a6678;margin-top:2px}
-#card .nt{font-size:13px;color:#3a4658;margin-top:6px;line-height:1.45}
-#card a{display:inline-block;margin-top:8px;font-size:12.5px;color:#0b62c4;text-decoration:none;margin-right:14px}
-#card a:hover{text-decoration:underline}
-#load{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:#0b1420;color:#9fb2c8;font-size:14px;transition:opacity .5s;pointer-events:none}
-@media(max-width:760px){#hud{max-width:210px}#hud h1{font-size:15px}#bar{top:auto;bottom:14px;left:auto;right:10px;transform:none;flex-direction:column}#card{bottom:14px;max-width:60vw}}
+.glass{background:rgba(13,20,30,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.09);border-radius:12px}
+button{font-family:inherit;cursor:pointer}
+
+/* ---------- left panel ---------- */
+#panel{position:fixed;top:12px;left:12px;bottom:12px;z-index:10;width:292px;display:flex;flex-direction:column;overflow:hidden;transition:transform .25s}
+#panel.hidden{transform:translateX(-316px)}
+#panel header{padding:14px 14px 10px}
+#panel h1{font-size:17px;font-weight:650;letter-spacing:-.01em}
+#panel .sub{font-size:11.5px;color:#8fa1b8;margin-top:2px}
+#search{margin:0 12px 8px;position:relative}
+#search input{width:100%;padding:8px 10px;font:13px system-ui;color:#e8eef6;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;outline:none}
+#search input:focus{border-color:#4f8fdd}
+#search input::placeholder{color:#7286a0}
+#list{flex:1;overflow-y:auto;padding:0 6px 10px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+#list::-webkit-scrollbar{width:6px}
+#list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+.cat{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6f84a0;padding:12px 10px 4px}
+.place{display:block;width:100%;text-align:left;padding:6px 10px;border:0;border-radius:8px;background:none;color:#dbe5f0}
+.place:hover{background:rgba(255,255,255,.07)}
+.place.active{background:rgba(64,128,210,.28)}
+.place .pn{font-size:13px;font-weight:550;line-height:1.25}
+.place .pm{font-size:11px;color:#8fa1b8;line-height:1.3}
+#foot{padding:9px 14px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#7f92aa;line-height:1.5}
+#foot a{color:#6aa5e8;text-decoration:none}
+#foot a:hover{text-decoration:underline}
+#foot kbd{font:10.5px ui-monospace,monospace;background:rgba(255,255,255,.1);border-radius:4px;padding:0 4px}
+
+/* ---------- top-right actions ---------- */
+#actions{position:fixed;top:12px;right:12px;z-index:10;display:flex;gap:6px;padding:6px}
+#actions button{font:550 12.5px system-ui;padding:7px 13px;border:1px solid rgba(255,255,255,.13);border-radius:8px;background:rgba(255,255,255,.06);color:#e8eef6}
+#actions button:hover{background:rgba(255,255,255,.14)}
+#actions button.on{background:#3572c0;border-color:#3572c0}
+#togglePanel{position:fixed;top:12px;left:12px;z-index:9;padding:7px 11px;font:550 13px system-ui;border:1px solid rgba(255,255,255,.13);border-radius:8px;background:rgba(13,20,30,.82);color:#e8eef6;backdrop-filter:blur(14px)}
+
+/* ---------- info card ---------- */
+#card{position:fixed;right:12px;bottom:12px;z-index:10;width:340px;max-width:calc(100vw - 24px);padding:14px 16px;display:none}
+#card.show{display:block}
+#card .nm{font-size:15.5px;font-weight:650;padding-right:22px}
+#card .ft{font-size:11.5px;color:#8fa1b8;margin-top:2px}
+#card .nt{font-size:13px;color:#c3d0de;margin-top:7px;line-height:1.5}
+#card .row{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap}
+#card .row button,#card .row a{font:550 12px system-ui;padding:6px 11px;border:1px solid rgba(255,255,255,.14);border-radius:7px;background:rgba(255,255,255,.06);color:#e8eef6;text-decoration:none}
+#card .row button:hover,#card .row a:hover{background:rgba(255,255,255,.14)}
+#cx{position:absolute;top:8px;right:10px;border:0;background:none;color:#8fa1b8;font-size:17px;line-height:1;padding:4px}
+#cx:hover{color:#fff}
+
+/* ---------- tour banner ---------- */
+#tourbar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:11;display:none;align-items:center;gap:12px;padding:9px 10px 9px 16px;max-width:calc(100vw - 24px)}
+#tourbar.show{display:flex}
+#tourbar .tt{font-size:13px;line-height:1.35;max-width:420px}
+#tourbar .tt b{font-weight:650}
+#tourbar .tt span{color:#9db0c6}
+#tourbar button{font:600 12px system-ui;padding:7px 12px;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(255,255,255,.08);color:#e8eef6;white-space:nowrap}
+#tourbar button:hover{background:rgba(255,255,255,.16)}
+
+/* ---------- loader ---------- */
+#load{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0a1018;transition:opacity .7s}
+#load.done{opacity:0;pointer-events:none}
+#load .big{font-size:21px;font-weight:650;letter-spacing:-.01em}
+#load .small{font-size:12.5px;color:#7f93ab}
+#load .bar{width:210px;height:3px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+#load .bar i{display:block;height:100%;width:35%;border-radius:2px;background:#4f8fdd;animation:slide 1.2s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(310%)}}
+
+@media(max-width:820px){
+ #panel{width:min(292px,82vw)}
+ #actions{top:auto;bottom:12px;right:12px;flex-direction:column}
+ #card{bottom:12px;right:64px}
+}
 </style>
 </head>
 <body>
-<gmp-map-3d id="map" mode="hybrid" center="26.1175,-80.1290,0" range="3400" tilt="64" heading="302"></gmp-map-3d>
-<div id="load">streaming the real Fort Lauderdale…</div>
-<div id="hud" class="panel"><h1>Fort Lauderdale</h1><p>drag to look · scroll to zoom · ctrl-drag to tilt · click a marker</p></div>
-<div id="bar" class="panel">
-<button id="bSky">Skyline</button><button id="bRiver">Riverfront</button><button id="bIsles">Isles</button><button id="bBeach">Beach</button><button id="bOffice">The office</button><button id="bOrbit">Orbit</button>
+<gmp-map-3d id="map" mode="hybrid" center="26.075,-80.06,900" range="14000" tilt="55" heading="295"></gmp-map-3d>
+
+<div id="load"><div class="big">Fort Lauderdale</div><div class="small">streaming the real city — photorealistic 3D</div><div class="bar"><i></i></div></div>
+
+<button id="togglePanel" title="Places (P)">☰ Places</button>
+<div id="panel" class="glass">
+ <header><h1>Fort Lauderdale</h1><div class="sub">photorealistic 3D — downtown to the beach</div></header>
+ <div id="search"><input id="q" type="search" placeholder="Search an address or place…  ( / )" autocomplete="off"></div>
+ <nav id="list"></nav>
+ <div id="foot">
+  <kbd>↑↓</kbd> browse · <kbd>Enter</kbd> fly · <kbd>O</kbd> orbit · <kbd>T</kbd> tour · <kbd>Esc</kbd> stop<br>
+  drag to look · scroll to zoom · ctrl-drag to tilt<br>
+  <a href="classic.html">hand-built model →</a>
+ </div>
 </div>
-<div id="card" class="panel"><div class="nm">Welcome</div><div class="nt">This is the real city — Google photorealistic 3D photogrammetry of Fort Lauderdale, downtown to the beach. Click any marker for details, or use the view buttons above.</div><a href="classic.html">Switch to the hand-built model →</a></div>
+
+<div id="actions" class="glass">
+ <button id="bTour" title="Guided tour (T)">▶ Tour</button>
+ <button id="bOrbit" title="Orbit here (O)">Orbit</button>
+ <button id="bReset" title="Reset view (R)">Reset</button>
+</div>
+
+<div id="card" class="glass">
+ <button id="cx" title="Close (Esc)">×</button>
+ <div class="nm"></div><div class="ft"></div><div class="nt"></div>
+ <div class="row">
+  <button id="cOrbit">Orbit here</button>
+  <button id="cStreet">Street level</button>
+  <a id="cMaps" href="#" target="_blank" rel="noopener">Google Maps ↗</a>
+ </div>
+</div>
+
+<div id="tourbar" class="glass">
+ <div class="tt"><b id="tTitle"></b> <span id="tStep"></span><br><span id="tNote"></span></div>
+ <button id="tNext">Next →</button>
+ <button id="tEnd">End tour</button>
+</div>
+
 <script>
 (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({key:"AIzaSyASRXz33aLobK6fLBh1Jj93BESefHkHACA",v:"beta"});
 </script>
 <script type="module">
-const LANDMARKS=[
-{n:'100 Las Olas',lat:26.11888,lng:-80.14188,alt:160,f:'499 ft · 46 floors · 2020',o:'Tallest building in Fort Lauderdale — condos above the Hyatt Centric hotel.'},
-{n:'Veneto Las Olas',lat:26.12024,lng:-80.13761,alt:165,f:'~499 ft · 45 floors',o:'One of the newest towers on the Las Olas skyline.'},
-{n:'Las Olas Grand',lat:26.11799,lng:-80.13855,alt:130,f:'~380 ft · 38 floors · 2005',o:'Condo tower on the New River, next to the Riverwalk.'},
-{n:'Las Olas River House',lat:26.11870,lng:-80.13970,alt:152,f:'~453 ft · 42 floors · 2004',o:'Condo tower rising straight off the Riverwalk.'},
-{n:'110 Tower',lat:26.11454,lng:-80.14154,alt:140,f:'~410 ft · 30 floors · 1988',o:'Office tower next door to the courthouse — heavy lawyer traffic.'},
-{n:'One Financial Plaza',lat:26.11985,lng:-80.13960,alt:128,f:'376 ft · 28 floors · 1972',o:'The dark tower that reigned as the city’s tallest for decades.'},
-{n:'Bank of America Plaza',lat:26.11967,lng:-80.13899,alt:105,f:'~290 ft · 23 floors · 2002',o:'Office anchor of the Las Olas City Centre block.'},
-{n:'Broward County Courthouse',lat:26.11070,lng:-80.13720,alt:100,f:'20 floors · opened 2017',o:'Broward County Judicial Complex — where the probate division sits.'},
-{n:'Brightline Fort Lauderdale',lat:26.12357,lng:-80.14582,alt:40,f:'opened 2018',o:'Trains to Miami, West Palm Beach, and Orlando.'},
-{n:'Museum of Discovery & Science',lat:26.12115,lng:-80.14786,alt:40,f:'opened 1992',o:'MODS and the AutoNation IMAX theater.'},
-{n:'NSU Art Museum',lat:26.11957,lng:-80.14285,alt:35,f:'building opened 1986',o:'Modern and contemporary art at Las Olas and Andrews.'},
-{n:'Riverside Hotel',lat:26.11883,lng:-80.13625,alt:55,f:'opened 1936',o:'The grande dame of Las Olas Boulevard.'},
-{n:'Stranahan House',lat:26.11850,lng:-80.13600,alt:25,f:'built 1901',o:'Oldest surviving structure in Broward County.'},
-{n:'Ginsberg Shulman, PL',lat:26.12033,lng:-80.14005,alt:55,f:'300 SE 2nd St · Suite 600',o:'Probate, estate planning, and trust administration — home base.'},
-{n:'Bahia Mar',lat:26.11270,lng:-80.10750,alt:45,f:'yachting center',o:'Home of the Fort Lauderdale International Boat Show.'},
-{n:'Elbo Room',lat:26.11894,lng:-80.10377,alt:25,f:'since 1938',o:'The corner of Las Olas and A1A — spring break ground zero.'}];
-const card=document.getElementById('card');
-function showCard(L){
- const q=encodeURIComponent(L.n.replace(/&/g,'and')+' Fort Lauderdale FL');
- card.innerHTML='<div class="nm">'+L.n+'</div><div class="ft">'+L.f+'</div><div class="nt">'+L.o+'</div><a href="https://www.google.com/maps/search/?api=1&query='+q+'" target="_blank" rel="noopener">Open in Google Maps ↗</a><a href="classic.html">Hand-built model →</a>';
+/* ---------------- data ---------------- */
+// cam: [range, tilt, heading] — how to frame the place when flying to it
+const PLACES=[
+{c:'Downtown & the skyline',n:'100 Las Olas',lat:26.11888,lng:-80.14188,alt:160,f:'499 ft · 46 floors · 2020',o:'Tallest building in Fort Lauderdale — condos above the Hyatt Centric hotel.',cam:[700,66,240]},
+{n:'Veneto Las Olas',lat:26.12024,lng:-80.13761,alt:165,f:'~499 ft · 45 floors',o:'One of the newest towers on the Las Olas skyline.',cam:[700,66,300]},
+{n:'One Financial Plaza',lat:26.11985,lng:-80.13960,alt:128,f:'376 ft · 28 floors · 1972',o:'The dark tower that reigned as the city’s tallest for three decades.',cam:[650,66,320]},
+{n:'Bank of America Plaza',lat:26.11967,lng:-80.13899,alt:105,f:'~290 ft · 23 floors · 2002',o:'Office anchor of the Las Olas City Centre block.',cam:[600,66,20]},
+{n:'110 Tower',lat:26.11454,lng:-80.14154,alt:140,f:'~410 ft · 30 floors · 1988',o:'Office tower next door to the courthouse — heavy lawyer traffic.',cam:[650,66,150]},
+{n:'Brightline Fort Lauderdale',lat:26.12357,lng:-80.14582,alt:40,f:'opened 2018',o:'Trains to Miami, West Palm Beach, and Orlando.',cam:[750,62,290]},
+{n:'Broward Center for the Performing Arts',lat:26.11890,lng:-80.14760,alt:45,f:'opened 1991',o:'Riverfront theater complex at Sailboat Bend, west end of the Riverwalk.',cam:[700,64,80]},
+{n:'Museum of Discovery & Science',lat:26.12115,lng:-80.14786,alt:40,f:'opened 1992',o:'MODS and the AutoNation IMAX theater.',cam:[650,62,120]},
+{n:'NSU Art Museum',lat:26.11957,lng:-80.14285,alt:35,f:'building opened 1986',o:'Modern and contemporary art at Las Olas and Andrews.',cam:[550,64,300]},
+{c:'Las Olas & the New River',n:'Las Olas River House',lat:26.11870,lng:-80.13970,alt:152,f:'~453 ft · 42 floors · 2004',o:'Condo tower rising straight off the Riverwalk.',cam:[700,66,200]},
+{n:'Las Olas Grand',lat:26.11799,lng:-80.13855,alt:130,f:'~380 ft · 38 floors · 2005',o:'Condo tower on the New River, next to the Riverwalk.',cam:[650,66,220]},
+{n:'Huizenga Plaza',lat:26.11810,lng:-80.14200,alt:25,f:'Las Olas at Andrews',o:'The downtown lawn on the New River — festivals, concerts, the Riverwalk.',cam:[600,60,30]},
+{n:'Riverside Hotel',lat:26.11883,lng:-80.13625,alt:55,f:'opened 1936',o:'The grande dame of Las Olas Boulevard.',cam:[550,64,200]},
+{n:'Stranahan House',lat:26.11850,lng:-80.13600,alt:25,f:'built 1901',o:'Oldest surviving structure in Broward County — trading post turned museum.',cam:[450,62,340]},
+{n:'Las Olas Isles',lat:26.11550,lng:-80.12150,alt:20,f:'the finger islands',o:'Millionaire canals between downtown and the beach — yachts in the backyard.',cam:[2300,60,318]},
+{c:'The legal district',n:'Broward County Courthouse',lat:26.11070,lng:-80.13720,alt:100,f:'20 floors · opened 2017',o:'Broward County Judicial Complex — where the probate division sits.',cam:[750,64,335]},
+{n:'U.S. Federal Courthouse',lat:26.12220,lng:-80.13670,alt:45,f:'299 E Broward Blvd',o:'The Southern District of Florida’s Fort Lauderdale division.',cam:[600,64,200]},
+{n:'Ginsberg Shulman, PL',lat:26.12033,lng:-80.14005,alt:55,f:'300 SE 2nd St · Suite 600',o:'Probate, estate planning, and trust administration — home base.',cam:[420,70,205]},
+{c:'Beach & Intracoastal',n:'Elbo Room',lat:26.11894,lng:-80.10377,alt:25,f:'since 1938',o:'The corner of Las Olas and A1A — spring break ground zero.',cam:[600,64,250]},
+{n:'Las Olas Oceanside Park',lat:26.11700,lng:-80.10350,alt:20,f:'A1A at Las Olas',o:'The beachfront plaza and market lawn behind the wave wall.',cam:[900,62,270]},
+{n:'International Swimming Hall of Fame',lat:26.11200,lng:-80.10600,alt:25,f:'Hall of Fame Dr',o:'Aquatic complex on the barrier island between the Intracoastal and A1A.',cam:[800,62,300]},
+{n:'Bahia Mar',lat:26.11270,lng:-80.10750,alt:45,f:'yachting center',o:'Home of the Fort Lauderdale International Boat Show.',cam:[1100,62,320]},
+{n:'Bonnet House',lat:26.13100,lng:-80.10670,alt:25,f:'built 1920',o:'Historic plantation-style estate and gardens tucked behind the beach.',cam:[800,60,280]},
+{n:'Hugh Taylor Birch State Park',lat:26.14000,lng:-80.10600,alt:25,f:'180 acres',o:'The green mile — a state park wedged between the Intracoastal and A1A.',cam:[1600,58,290]}];
+
+const TOUR=[
+{n:'The skyline',note:'Downtown Fort Lauderdale from over the New River — watch the towers resolve.',cam:{lat:26.1185,lng:-80.1330,alt:0,range:2800,tilt:64,heading:302},orbit:false},
+{p:'100 Las Olas',note:'Start at the top — the tallest building in the city.'},
+{p:'Huizenga Plaza',note:'Where Las Olas meets the river. The Riverwalk runs both banks from here.'},
+{p:'Stranahan House',note:'1901. Everything else in Broward County came after this house.'},
+{p:'Broward County Courthouse',note:'The Judicial Complex — probate division included.'},
+{p:'Ginsberg Shulman, PL',note:'300 SE 2nd St, Suite 600. Home base.'},
+{p:'Las Olas Isles',note:'The finger canals — dredged in the 1920s, now wall-to-wall yachts.'},
+{p:'Elbo Room',note:'A1A and Las Olas. The beach corner that made the city famous in 1960.'},
+{p:'Bahia Mar',note:'The yachting capital’s front door — Boat Show ground zero.'},
+{n:'Back over the city',note:'That’s the loop — keep flying, or open the places panel.',cam:{lat:26.1180,lng:-80.1250,alt:0,range:5200,tilt:60,heading:285},orbit:false}];
+
+const HOME={lat:26.1175,lng:-80.1290,alt:0,range:3400,tilt:64,heading:302};
+
+/* ---------------- dom ---------------- */
+const $=id=>document.getElementById(id);
+const map=$('map'),card=$('card'),list=$('list'),panel=$('panel'),tourbar=$('tourbar');
+let markers={},activeRow=null,selected=null,touring=false,tourIdx=0,tourTimer=null;
+
+function fly(cam,ms=2600){map.flyCameraTo({endCamera:{center:{lat:cam.lat,lng:cam.lng,altitude:cam.alt||0},range:cam.range,tilt:cam.tilt,heading:cam.heading},durationMillis:ms});}
+function camFor(P){return {lat:P.lat,lng:P.lng,alt:0,range:P.cam[0],tilt:P.cam[1],heading:P.cam[2]};}
+function stopAnim(){try{map.stopCameraAnimation()}catch(e){}}
+
+function orbitHere(){
+ stopAnim();
+ const c=map.center||HOME;
+ map.flyCameraAround({camera:{center:{lat:c.lat,lng:c.lng,altitude:c.altitude||0},range:map.range||2500,tilt:map.tilt||64,heading:map.heading||0},durationMillis:46000,rounds:1});
 }
-const map=document.getElementById('map');
-function fly(lat,lng,alt,range,tilt,heading,ms=2400){
- map.flyCameraTo({endCamera:{center:{lat,lng,altitude:alt},range,tilt,heading},durationMillis:ms});
+
+function showCard(P){
+ selected=P;
+ card.querySelector('.nm').textContent=P.n;
+ card.querySelector('.ft').textContent=P.f;
+ card.querySelector('.nt').textContent=P.o;
+ $('cMaps').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(P.n.replace(/&/g,'and')+' Fort Lauderdale FL');
+ card.classList.add('show');
 }
+function hideCard(){card.classList.remove('show');selected=null;}
+
+function select(P,row,quick){
+ if(activeRow)activeRow.classList.remove('active');
+ activeRow=row||[...list.querySelectorAll('.place')].find(b=>b.dataset.n===P.n);
+ if(activeRow){activeRow.classList.add('active');activeRow.scrollIntoView({block:'nearest'});}
+ stopAnim();
+ fly(camFor(P),quick?1600:2600);
+ showCard(P);
+}
+
+/* ---------------- build list ---------------- */
+{
+ let html='';
+ for(const P of PLACES){
+  if(P.c)html+='<div class="cat">'+P.c+'</div>';
+  html+='<button class="place" data-n="'+P.n.replace(/"/g,'&quot;')+'"><div class="pn">'+P.n+'</div><div class="pm">'+P.f+'</div></button>';
+ }
+ list.innerHTML=html;
+ list.querySelectorAll('.place').forEach(row=>{
+  row.onclick=()=>select(PLACES.find(P=>P.n===row.dataset.n),row);
+ });
+}
+
+/* ---------------- tour ---------------- */
+function tourStop(i){
+ const s=TOUR[i];
+ const P=s.p?PLACES.find(x=>x.n===s.p):null;
+ $('tTitle').textContent=P?P.n:s.n;
+ $('tStep').textContent='· '+(i+1)+' / '+TOUR.length;
+ $('tNote').textContent=s.note;
+ stopAnim();
+ if(P){fly(camFor(P),3000);showCard(P);}
+ else{fly(s.cam,3200);hideCard();}
+ clearTimeout(tourTimer);
+ tourTimer=setTimeout(()=>{if(touring)nextStop();},P?9500:8000);
+}
+function nextStop(){tourIdx++;if(tourIdx>=TOUR.length){endTour();return;}tourStop(tourIdx);}
+function startTour(){touring=true;tourIdx=0;$('bTour').classList.add('on');tourbar.classList.add('show');panel.classList.add('hidden');tourStop(0);}
+function endTour(){touring=false;clearTimeout(tourTimer);$('bTour').classList.remove('on');tourbar.classList.remove('show');panel.classList.remove('hidden');stopAnim();}
+$('bTour').onclick=()=>touring?endTour():startTour();
+$('tNext').onclick=()=>nextStop();
+$('tEnd').onclick=()=>endTour();
+
+/* ---------------- actions ---------------- */
+$('bOrbit').onclick=orbitHere;
+$('bReset').onclick=()=>{endTour();hideCard();stopAnim();fly(HOME,2400);};
+$('cx').onclick=hideCard;
+$('cOrbit').onclick=()=>{if(!selected)return;stopAnim();const P=selected;map.flyCameraAround({camera:{center:{lat:P.lat,lng:P.lng,altitude:0},range:P.cam[0],tilt:P.cam[1],heading:P.cam[2]},durationMillis:40000,rounds:1});};
+$('cStreet').onclick=()=>{if(!selected)return;stopAnim();fly({lat:selected.lat,lng:selected.lng,alt:0,range:230,tilt:78,heading:selected.cam[2]},2200);};
+$('togglePanel').onclick=()=>panel.classList.toggle('hidden');
+
+/* ---------------- search ---------------- */
+const q=$('q');let geocoder=null;
+q.addEventListener('keydown',async ev=>{
+ if(ev.key!=='Enter'||!q.value.trim())return;
+ ev.preventDefault();
+ try{
+  if(!geocoder){const g=await google.maps.importLibrary('geocoding');geocoder=new g.Geocoder();}
+  const res=await geocoder.geocode({address:q.value+', Fort Lauderdale, FL',region:'us'});
+  const r=res.results&&res.results[0];
+  if(!r){q.value='';q.placeholder='No match — try again';return;}
+  const loc=r.geometry.location;
+  stopAnim();hideCard();
+  fly({lat:loc.lat(),lng:loc.lng(),alt:0,range:600,tilt:66,heading:0},2600);
+ }catch(e){console.warn('geocode failed',e);q.placeholder='Search unavailable';}
+ q.blur();
+});
+
+/* ---------------- keyboard ---------------- */
+document.addEventListener('keydown',ev=>{
+ if(ev.target===q){if(ev.key==='Escape')q.blur();return;}
+ const rows=[...list.querySelectorAll('.place')];
+ const idx=activeRow?rows.indexOf(activeRow):-1;
+ switch(ev.key){
+  case '/':ev.preventDefault();panel.classList.remove('hidden');q.focus();break;
+  case 'ArrowDown':ev.preventDefault();{const r=rows[Math.min(idx+1,rows.length-1)];if(r){if(activeRow)activeRow.classList.remove('active');activeRow=r;r.classList.add('active');r.scrollIntoView({block:'nearest'});}}break;
+  case 'ArrowUp':ev.preventDefault();{const r=rows[Math.max(idx-1,0)];if(r){if(activeRow)activeRow.classList.remove('active');activeRow=r;r.classList.add('active');r.scrollIntoView({block:'nearest'});}}break;
+  case 'Enter':if(activeRow)select(PLACES.find(P=>P.n===activeRow.dataset.n),activeRow,true);break;
+  case 'o':case 'O':orbitHere();break;
+  case 't':case 'T':touring?endTour():startTour();break;
+  case 'r':case 'R':$('bReset').click();break;
+  case 'p':case 'P':panel.classList.toggle('hidden');break;
+  case 'Escape':if(touring)endTour();else{stopAnim();hideCard();}break;
+ }
+});
+
+/* ---------------- init ---------------- */
 async function init(){
  const lib=await google.maps.importLibrary('maps3d');
  const Marker=lib.Marker3DInteractiveElement||lib.Marker3DElement;
- for(const L of LANDMARKS){
+ for(const P of PLACES){
   try{
-   const m=new Marker({position:{lat:L.lat,lng:L.lng,altitude:L.alt},altitudeMode:'RELATIVE_TO_GROUND',label:L.n,extruded:true});
-   if(m.addEventListener)m.addEventListener('gmp-click',()=>showCard(L));
-   map.append(m);
-  }catch(e){console.warn('marker failed',L.n,e);}
+   const m=new Marker({position:{lat:P.lat,lng:P.lng,altitude:P.alt},altitudeMode:'RELATIVE_TO_GROUND',label:P.n,extruded:true});
+   if(m.addEventListener)m.addEventListener('gmp-click',()=>select(P));
+   map.append(m);markers[P.n]=m;
+  }catch(e){console.warn('marker failed',P.n,e);}
  }
- document.getElementById('bSky').onclick=()=>fly(26.1185,-80.1330,0,3000,64,302);
- document.getElementById('bRiver').onclick=()=>fly(26.1196,-80.1405,0,650,72,35);
- document.getElementById('bIsles').onclick=()=>fly(26.1140,-80.1150,0,2200,62,318);
- document.getElementById('bBeach').onclick=()=>fly(26.1175,-80.1010,0,1700,68,272);
- document.getElementById('bOffice').onclick=()=>{fly(26.12033,-80.14005,0,420,72,205,2800);showCard(LANDMARKS.find(l=>l.n.startsWith('Ginsberg')));};
- document.getElementById('bOrbit').onclick=()=>{
-  const c=map.center||{lat:26.1185,lng:-80.133,altitude:0};
-  map.flyCameraAround({camera:{center:{lat:c.lat,lng:c.lng,altitude:c.altitude||0},range:map.range||2500,tilt:map.tilt||64,heading:map.heading||0},durationMillis:40000,rounds:1});
+ // hide the loader when the scene settles (or after a hard cap), then fly in
+ let done=false;
+ const finish=()=>{
+  if(done)return;done=true;
+  $('load').classList.add('done');setTimeout(()=>$('load').remove(),800);
+  fly(HOME,4500);
  };
- const ld=document.getElementById('load');
- setTimeout(()=>{ld.style.opacity='0';setTimeout(()=>ld.remove(),600);},1500);
+ map.addEventListener('gmp-steadychange',ev=>{if(ev.isSteady)finish();});
+ setTimeout(finish,9000);
 }
 init().catch(e=>{
  console.error(e);
- const ld=document.getElementById('load');
- ld.style.pointerEvents='auto';
- ld.innerHTML='Could not load Google 3D tiles — <a style="color:#7fb4e8;margin-left:6px" href="classic.html">open the hand-built model instead</a>';
+ const ld=$('load');
+ ld.innerHTML='<div class="big">Could not load Google 3D tiles</div><div class="small"><a style="color:#6aa5e8" href="classic.html">open the hand-built model instead →</a></div>';
 });
 </script>
 </body>

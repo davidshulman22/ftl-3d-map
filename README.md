@@ -1,19 +1,18 @@
-# Downtown Fort Lauderdale — interactive 3D
+# Fort Lauderdale — interactive 3D
 
-An interactive 3D map of downtown Fort Lauderdale rendered in the browser with Three.js. Every building footprint, street, park, and the New River come from real OpenStreetMap data — 4,200+ extruded buildings, the actual street grid, animated boats on the river, traffic on the avenues, palms on the Riverwalk, and a day/dusk lighting toggle with lit windows after dark.
+An interactive 3D map of Fort Lauderdale, downtown to the beach.
 
 **Live:** https://davidshulman22.github.io/ftl-3d-map/
 
-## Controls
+Two renderers:
 
-- Drag to orbit, scroll to zoom, right-drag (or shift-drag) to pan
-- Click any landmark tower for details and a Google Maps link
-- Preset views: Reset, Top down, Riverfront
-- Dusk button switches to evening lighting
+- `index.html` — the real city on Google Photorealistic 3D Tiles, wrapped in a full app: a places panel with 24 curated spots in four groups (skyline, Las Olas & the river, the legal district, beach & Intracoastal), address search, a 10-stop guided tour with story cards, per-place orbit and street-level views, and keyboard-first navigation (`↑↓` browse, `Enter` fly, `O` orbit, `T` tour, `/` search, `Esc` stop).
+- `classic.html` — the hand-built Three.js model: 4,200+ extruded buildings from real OpenStreetMap footprints over USGS aerial imagery, animated boats and traffic, and a day/dusk toggle.
 
 ## Files
 
-- `index.html` — the whole app (Three.js via CDN import map)
+- `index.html` — photorealistic app (Google Maps JS API, `gmp-map-3d`)
+- `classic.html` — hand-built model (Three.js via CDN import map)
 - `data.js` — compact geometry baked from OpenStreetMap (generated, ~475 KB)
 - `build_data.py` — regenerates `data.js` from raw Overpass API responses
 
